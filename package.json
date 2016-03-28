@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "engines": {
+    "node": ">=0.12.0"
+  },
+  "devDependencies": {
+		"turf": "~2.0.2",
+		"csv-parse": "~1.0.2",
+		"lodash": "4.6.1"
+  }
+}
