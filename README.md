@@ -44,3 +44,9 @@ Download and transform data
 ```
 make all && make clean
 ```
+
+Run analysis
+
+```
+node bin/analyze.js
+```
