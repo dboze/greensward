@@ -16,7 +16,13 @@ Outputs
 * center of gravity of Shelby County population
 * center of gravity of City of Memphis population
 * measurements within 2 miles of Overton Park boundry
-  * total residential population
+  * residential population
+  * number of households
+  * household income counts
+    * less than $30k per year
+    * less than $75k per year
+    * less than $150k per year
+    * greater than $150k per year
 
 Setup
 -----
