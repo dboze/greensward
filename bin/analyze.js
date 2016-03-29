@@ -17,15 +17,13 @@ var outputs = {
       x: 0.0,
       y: 0.0,
       total: 0,
-      bg_count: 0,
-      file: "./output/memphis_cog.json"
+      bg_count: 0
     },
     shelby: {
       x: 0.0,
       y: 0.0,
       total: 0,
-      bg_count: 0,
-      file: "./output/shelby_cog.json"
+      bg_count: 0
     }
   },
   nearpark: {
@@ -83,10 +81,12 @@ _(income_data).forEach(function(bg) {
   }
 });
 
+var features = [];
 _(bgs.features).forEach(function(bg) {
   var geoid =  bg.properties.GEOID;
   if (geoid in bg_metadata) {
     // inside shelby county
+    var fill_color = 'yellow';
     var center = turf.centroid(bg);
     var population = bg_metadata[geoid].population;
     var households = bg_metadata[geoid].households;
@@ -98,6 +98,7 @@ _(bgs.features).forEach(function(bg) {
     
     if (turf.inside(center, memphis)) {
       // inside city of memphis
+      fill_color = 'blue';
       outputs.population.memphis.total += population;
       outputs.population.memphis.households += households;
       outputs.population.memphis.bg_count += 1;
@@ -106,6 +107,7 @@ _(bgs.features).forEach(function(bg) {
       
       if (turf.inside(center, park.features[0])) {
         // inside 2 miles of park
+        fill_color = 'red';
         outputs.nearpark.population += population;
         outputs.nearpark.households += households;
         outputs.nearpark.bg_count += 1; 
@@ -119,20 +121,42 @@ _(bgs.features).forEach(function(bg) {
         });
 
       }
+      features.push({
+        type: 'Feature',
+        properties:{
+          fill: fill_color
+        },
+        geometry: bg.geometry
+      });
     }
   }
 });
-console.log(outputs.nearpark);
 
 _.forEach(outputs.population, function(data, name) {
-  x = data.x / data.total;
-  y = data.y / data.total;
-  cog = turf.point([x, y]);
-  fc = turf.featurecollection([cog]);
-  fs.writeFileSync(data.file, JSON.stringify(fc));
+  var x = data.x / data.total;
+  var y = data.y / data.total;
+  var cog = turf.point([x, y]);
+  cog.properties = {
+    name: name + " population center",
+    population: data.total,
+    bg_count: data.bg_count
+  };
+  features.push(cog);
 });
 
 park_properties = park.features[0].properties;
 park_properties.name = "Overton Park 2 Miles Buffer";
 park_properties.total_population = outputs.nearpark.population;
-fs.writeFileSync('./output/nearpark.json', JSON.stringify(park));
+park_properties.households = outputs.nearpark.households;
+park_properties.bg_count = outputs.nearpark.bg_count;
+park_properties['stroke-width'] = 2;
+park_properties['stroke-color'] = 'black';
+_(outputs.nearpark.income).forEach(function(i, k) {
+  park_properties['income_' + k] = i;
+});
+
+features.push(park.features[0]);
+var fc = turf.featurecollection(features);
+fs.writeFileSync('./output/nearpark.json', JSON.stringify(fc));
+
+console.log(outputs.nearpark);
