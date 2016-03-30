@@ -5,6 +5,7 @@ var turf = require('turf');
 
 var popfile = './data/ACS_14_5YR_B01003.csv';
 var incomefile = './data/ACS_14_5YR_B19001_with_ann.csv';
+var racefile = './data/ACS_14_5YR_B02001_with_ann.csv';
 var bgfile = './data/bgs.json';
 var placesfile = './data/places.json';
 var parkfile = './data/park.json';
@@ -30,7 +31,8 @@ var outputs = {
     population: 0,
     bg_count: 0,
     households: 0,
-    income: {}
+    income: {},
+    race: {}
   }
 };
 
@@ -44,6 +46,7 @@ var park = turf.buffer( JSON.parse(fs.readFileSync(parkfile)), 2.0, 'miles');
 var bgs = JSON.parse(fs.readFileSync(bgfile));
 var pop_data = parse(fs.readFileSync(popfile), { columns: true });
 var income_data = parse(fs.readFileSync(incomefile), { columns: true });
+var race_data = parse(fs.readFileSync(racefile), { columns: true });
 
 _(pop_data).forEach(function(bg) {
   bg_metadata[bg["GEO.id2"]] = { population: parseInt(bg.HD01_VD01) };
@@ -77,6 +80,20 @@ _(income_data).forEach(function(bg) {
       'lt_75k': lt_75k,
       'lt_150k': lt_150k,
       'gt_150k': gt_150k
+    };
+  }
+});
+_(race_data).forEach(function(bg) {
+  var geoid = bg['GEO.id2'];
+  if (geoid in bg_metadata) {
+    bg_metadata[geoid].race = {
+      white: parseInt(bg.HD01_VD02),
+      black: parseInt(bg.HD01_VD03),
+      native_am: parseInt(bg.HD01_VD04),
+      asian: parseInt(bg.HD01_VD05),
+      pacific_is: parseInt(bg.HD01_VD06),
+      other: parseInt(bg.HD01_VD07),
+      twoplus: parseInt(bg.HD01_VD08)
     };
   }
 });
@@ -120,15 +137,25 @@ _(bgs.features).forEach(function(bg) {
           outputs.nearpark.income[k] += i;
         });
 
+        var race = bg_metadata[geoid].race;
+        _(race).forEach(function(i, k) {
+          if (!(k in outputs.nearpark.race)) {
+            outputs.nearpark.race[k] = 0;
+          }
+          outputs.nearpark.race[k] += i;
+        });
+
       }
-      features.push({
-        type: 'Feature',
-        properties:{
-          fill: fill_color
-        },
-        geometry: bg.geometry
-      });
     }
+    features.push({
+      type: 'Feature',
+      properties:{
+        'stroke-width': 1,
+        stroke: 'grey',
+        fill: fill_color
+      },
+      geometry: bg.geometry
+    });
   }
 });
 
@@ -153,6 +180,9 @@ park_properties['stroke-width'] = 2;
 park_properties['stroke-color'] = 'black';
 _(outputs.nearpark.income).forEach(function(i, k) {
   park_properties['income_' + k] = i;
+});
+_(outputs.nearpark.race).forEach(function(i, k) {
+  park_properties['race_' + k] = i;
 });
 
 features.push(park.features[0]);
